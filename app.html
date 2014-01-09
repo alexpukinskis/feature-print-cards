@@ -34,7 +34,7 @@
                         name += "...";
                     }
 					if (data[i].Parent != null) {
-						parent = data[i].Parent.Name;
+						parent = data[i].Parent.FormattedID + ': ' + data[i].Parent.Name;
 					}
 					if (data[i].LeafStoryCount != null) {
 						leafStoryCount = data[i].LeafStoryCount;
