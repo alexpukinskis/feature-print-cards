@@ -16,24 +16,31 @@
         function PrintStoryCards(rallyDataSource) {
         
             function displayCards(results) {
-            	console.log(results);
-                var estimate, loginName, ownerClass, storyId, taskId, description,
+                    console.log(results);
+                var estimate, loginName, ownerClass, storyId, taskId, parent, leafStoryCount,
                         i, name, theMarkup, data, userTable, ownerText;
         
                 userTable = buildUserTable(results.users);
         
                 data = results[CARD_TYPE];
-        
+        			
                 for (i = 0; i < data.length; i++) {
-					// dont show epics
-                	if ((data[i].Children != null) && (data[i].Children.length > 0))
-                		continue;
+                                        // dont show epics
+                        if ((data[i].Children != null) && (data[i].Children.length > 0))
+                                continue;
                     name = data[i].Name;
                     if (name.length > MAX_NAME_LEN) {
                         name = name.substring(0, MAX_NAME_LEN);
                         name += "...";
                     }
-        
+					if (data[i].Parent != null) {
+						parent = data[i].Parent.Name;
+					}
+					if (data[i].LeafStoryCount != null) {
+						leafStoryCount = data[i].LeafStoryCount;
+					} else {
+						leafStoryCount = 0;
+					}
                     loginName = data[i].Owner;
                     if (typeof loginName === 'undefined' || loginName === null) {
                         ownerClass = "NoOwner";
@@ -51,21 +58,19 @@
                         taskId = results.tasks[i].FormattedID;
                     }
         
-        			if (data[i].PreliminaryEstimate) {
-        				estimate = data[i].PreliminaryEstimate.Name;
-        			}
+                                if (data[i].PreliminaryEstimate) {
+                                        estimate = data[i].PreliminaryEstimate.Name;
+                                }
                     else if (data[i].PlanEstimate) {
                         estimate = data[i].PlanEstimate;
                     } else if (data[i].Estimate) {
                         estimate = data[i].Estimate;
                     } else {
-                        estimate = "None";
+                        estimate = "";
                     }
         
-                    // description = data[i].Description.slice(0,240);
-                    description = data[i].Description.slice(0,1024);
-        
-                    theMarkup = createMarkup(i, data.length, name, ownerText, ownerClass, description,
+                            
+                    theMarkup = createMarkup(i, data.length, name, ownerText, ownerClass, parent, leafStoryCount,
                             storyId, taskId, estimate);
         
                     dojo.byId("cards").innerHTML += theMarkup;
@@ -90,7 +95,7 @@
                 }
             }
         
-            function createMarkup(cardNum, totalCards, name, ownerText, ownerClass, description, storyId, taskId, estimate) {
+            function createMarkup(cardNum, totalCards, name, ownerText, ownerClass, parent, leafStoryCount, storyId, taskId, estimate) {
                 var theMarkup, id;
                 if (CARD_TYPE === 'stories') {
                     id = storyId;
@@ -107,7 +112,7 @@
                                 '</div>' +
                                 '<div class="content">' +
                                 '<div class="card-title">' + name + '</div>' +
-                                '<div class="description">' + description + '</div>' +
+                                '<div class="parent">' + parent + '</div>' +
                                 '</div>' +
                                 '<span class="estimate">' + estimate + '</span>' +
                                 '</div>';
@@ -138,7 +143,7 @@
                 
                 var query = "";
                 
-				//Print features instead of stories.
+                                //Print features instead of stories.
                 // query = "(PortfolioItemType.Ordinal = 0)";
 
                 var selectedRelease = iterationDropdown.getSelectedName();
@@ -153,10 +158,10 @@
                     key: CARD_TYPE,
                     type: 'PortfolioItem',
                     query: query,
-                    fetch: 'Name,Iteration,Owner,FormattedID,PlanEstimate,ObjectID,Description,UserName,Children,PreliminaryEstimate',
+                    fetch: 'Name,Iteration,Owner,FormattedID,PlanEstimate,ObjectID,UserName,Children,PreliminaryEstimate,Parent,LeafStoryCount',
                     order: 'Rank'
                 };
-                queryArray[1] = {
+                queryArray[1] = {	
                     key: 'users',
                     type: 'users',
                     fetch: 'UserName,ObjectID,DisplayName'
@@ -199,12 +204,12 @@
             }
             
             function onDataRetrieved(a, eventArgs) {
-			    //Add an "All" option
-			    var all = {};
-			    all[eventArgs.displayValueProperty] = "Unscheduled";
-			    all[eventArgs.valueProperty] = "Unscheduled";
-			    eventArgs.items.unshift(all);
-			}
+                            //Add an "All" option
+                            var all = {};
+                            all[eventArgs.displayValueProperty] = "Unscheduled";
+                            all[eventArgs.valueProperty] = "Unscheduled";
+                            eventArgs.items.unshift(all);
+                        }
         
             this.display = function(){
                 // iterationDropdown = new rally.sdk.ui.IterationDropdown({}, rallyDataSource);
@@ -222,7 +227,7 @@
         }
 
     </script>
- 	<style type="text/css" title="printCards">
+         <style type="text/css" title="printCards">
         /* PLEASE LEAVE THIS STYLESHEET INLINE SINCE TITLE IS NECESSARY */
         @media print {
                 #interface {
@@ -284,15 +289,19 @@
             }
  
             .card-title {
-                font: bold 15px Genova, sans-serif;
+                font: bold 32px Genova, sans-serif;
                 padding-top: 0.5em;
                 text-align: center;
+                padding-left: 1.0em;
+                padding-right: 1.0em;
+
             }
  
-            .description {
+            .parent {
                 float: left;
-                font: 12pt Georgia, sans-serif;
+                font: italic 12pt Arial, Helvetica, sans-serif;
                 margin: 0.25em auto 0 auto;
+				text-align: center;
                 padding-left: 1.0em;
                 padding-right: 1.0em;
                 overflow: hidden;
@@ -324,7 +333,7 @@
             }
  
             .content {
-                height: 2.0in;
+                height: 3.0in;
                 overflow: hidden;
                 width: 4.5in;
             }
@@ -348,7 +357,7 @@
 </head>
 <body>
     <div style="float:right" id="help"></div>
-    <div id="iterationDropdown"></div>
+            <div id="iterationDropdown"></div>
 
     <div id="interface">
         <div id="buttonDiv"></div>
